@@ -31,11 +31,6 @@ struct State{
     return new_state;
   }
 };
-bool operator< (const State& st1, const State& st2){
-  return false;
-  return (st1.satisfied_rows.count()/1.0/std::log(st1.cost)) < (st2.satisfied_rows.count()/1.0/std::log(st2.cost));
-  return st1.satisfied_rows.count() < st2.satisfied_rows.count();
-}
 
 bool issubset(const std::bitset<MAX_NUM>& lhs, const std::bitset<MAX_NUM>& rhs){
   return (lhs & (~rhs)).count()==0;
@@ -101,33 +96,31 @@ int main(void){
   int best = 1e8;
   std::bitset<MAX_NUM> best_list;
   //std::set<short> best_list;
-  std::priority_queue<State> pq;
+  //std::priority_queue<State> pq;
+  std::stack<State> stk;
   State st;
-  pq.push(st);
+  stk.push(st);
 
   int c = pr.is_active_col.count();
   std::cout << c << std::endl;
   std::cout << pr.is_active_col << std::endl;
 
 
-  std::unordered_set<std::bitset<MAX_NUM> > checked;
   long long int n_checked = 0;
-  while(!pq.empty()){
-    State now = pq.top();
+  while(!stk.empty()){
+    State now = stk.top();
     n_checked++;
-    //checked.insert(now.active_cols);
     if(n_checked % 100000 == 0){
       std::cout << now.active_cols << std::endl;
       std::cout << std::time(nullptr) << " "
 		<< n_checked << " "
-		<< pq.size() << " "
+		<< stk.size() << " "
 		<< best << " "
 		<< now.satisfied_rows.count() << " "
 		<< now.active_cols.count() << " "
 		<< now.cost << std::endl;
     }
-    //if(n_checked==50) return 0;
-    pq.pop();
+    stk.pop();
 
     // check the possibility to improve the result
     if(best <= now.cost) continue;
@@ -144,37 +137,37 @@ int main(void){
       if(now.active_cols[i]) largest = i;
     }
 
-    int largest_update = 0;
+    float largest_efficiency = 0;
     std::vector<State> tmp;
-    for(int i=pr.cols-1; i>=largest; i--){
-    //for(int i=largest; i<pr.cols; i++){
-    //for(int i=0; i<pr.cols; i++){
+    for(int i=pr.cols-1; i>largest; i--){
       // check the col is useful
       if(pr.is_active_col[i] == false) continue;
-      
-      // check already actived
-      if(now.active_cols[i]) continue;
-      //if(now.active_cols.find(i) != now.active_cols.end()) continue;
 
       State new_st = now.activate_col(i, pr);
       // check whether does the number of satisfied rows increase
       if(new_st.satisfied_rows.count() == now.satisfied_rows.count()) continue;
       // check the possibility to improve the result
       if(new_st.cost >= best) continue;
-      // check whether is the set already checked
-      if(checked.find(new_st.active_cols) != checked.end()) continue;
 
       tmp.push_back(new_st);
-      int update = new_st.satisfied_rows.count() - now.satisfied_rows.count();
-      if(largest_update < update) largest_update = update;
+      float efficiency = (new_st.satisfied_rows.count() - now.satisfied_rows.count())
+	/ float(new_st.cost - now.cost);
+      if(largest_efficiency < efficiency) largest_efficiency = efficiency;
       //break;
-      //pq.push(new_st);
+      //stk.push(new_st);
     }
-    if((pr.rows - now.satisfied_rows.count()) >
-       largest_update * (best-1 - now.active_cols.count())) continue;
     for(const auto& elem: tmp){
-      pq.push(elem);
+      if((pr.rows - elem.satisfied_rows.count()) >
+	 largest_efficiency * (best-1 - elem.active_cols.count())) continue;
+      stk.push(elem);
     }
   }
+
+  std::cout << "total loops: " << n_checked << std::endl;
+  std::cout << "the best set is: " << std::endl;
+  for(int i=0; i<pr.cols; i++){
+    if(best_list[i]) std::cout << i << " ";
+  }
+  std::cout << std::endl;
   return 0;
 }
