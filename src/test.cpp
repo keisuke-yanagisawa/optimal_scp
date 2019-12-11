@@ -12,11 +12,47 @@
 
 const int MAX_NUM=150;
 
+bool issubset(const std::bitset<MAX_NUM>& lhs, const std::bitset<MAX_NUM>& rhs){
+  return (lhs & (~rhs)).count()==0;
+}
+
 struct problem{
   short rows, cols;
   std::vector<int> col_costs;
   std::vector<std::bitset<MAX_NUM> > col_covers;
   std::bitset<MAX_NUM> is_active_col;
+  void init(){
+    is_active_col = std::bitset<MAX_NUM>();
+    for(int i=0; i<cols; i++){
+      is_active_col[i] = true;
+    }
+    
+    for(int i=0; i<col_covers.size(); i++){
+      for(int j=0; j<col_covers.size(); j++){
+	if(i==j) continue;
+	if(col_costs[i] <= col_costs[j] && is_active_col[i]
+	   && issubset(col_covers[j], col_covers[i])){
+	  is_active_col[j] = false;
+	}
+      }
+    }
+  }
+  
+  void verify(){
+    std::bitset<MAX_NUM> test_val;
+    for(int i=0; i<cols; i++){
+      test_val |= col_covers[i];
+    }
+    assert(rows == test_val.count());
+    
+    test_val = std::bitset<MAX_NUM>();
+    for(int i=0; i<cols; i++){
+      if(!is_active_col[i]) continue;
+      test_val |= col_covers[i];
+    }
+    assert(rows == test_val.count());
+  }
+
 };
 
 struct State{  
@@ -31,10 +67,6 @@ struct State{
     return new_state;
   }
 };
-
-bool issubset(const std::bitset<MAX_NUM>& lhs, const std::bitset<MAX_NUM>& rhs){
-  return (lhs & (~rhs)).count()==0;
-}
 
 void parse(std::istream& is, problem& p){
   is >> p.rows >> p.cols;
@@ -59,53 +91,20 @@ void parse(std::istream& is, problem& p){
     std::cout << elem << std::endl;
   }
 
-  p.is_active_col = std::bitset<MAX_NUM>();
-  for(int i=0; i<p.cols; i++){
-    p.is_active_col[i] = true;
-  }
 
-  for(int i=0; i<p.col_covers.size(); i++){
-    for(int j=0; j<p.col_covers.size(); j++){
-      if(i==j) continue;
-      if(p.col_costs[i] <= p.col_costs[j] && p.is_active_col[i]
-	 && issubset(p.col_covers[j], p.col_covers[i])){
-	p.is_active_col[j] = false;
-      }
-    }
-  }
-
-  std::bitset<MAX_NUM> test_val;
-  for(int i=0; i<p.cols; i++){
-    test_val |= p.col_covers[i];
-  }
-  assert(p.rows == test_val.count());
-
-  test_val = std::bitset<MAX_NUM>();
-  for(int i=0; i<p.cols; i++){
-    if(!p.is_active_col[i]) continue;
-    test_val |= p.col_covers[i];
-  }
-  assert(p.rows == test_val.count());
-  
+  p.init();
+  p.verify();
 }
 
-int main(void){
-  problem pr;
-  parse(std::cin, pr);
+State solve(const problem& pr){
 
-  int best = 1e8;
-  std::bitset<MAX_NUM> best_list;
-  //std::set<short> best_list;
-  //std::priority_queue<State> pq;
+  // initial state
   std::stack<State> stk;
   State st;
   stk.push(st);
 
-  int c = pr.is_active_col.count();
-  std::cout << c << std::endl;
-  std::cout << pr.is_active_col << std::endl;
-
-
+  int best = 1e8;
+  State best_state;
   long long int n_checked = 0;
   while(!stk.empty()){
     State now = stk.top();
@@ -126,9 +125,9 @@ int main(void){
     if(best <= now.cost) continue;
     
     if(now.satisfied_rows.count() == pr.rows){
+      best_state = now;
       best = now.cost;
-      best_list = now.active_cols;
-      std::cout << n_checked << " " << best << " " << best_list << std::endl;
+      std::cout << n_checked << " " << best << " " << best_state.active_cols << std::endl;
       continue;
     }
 
@@ -162,12 +161,24 @@ int main(void){
       stk.push(elem);
     }
   }
-
   std::cout << "total loops: " << n_checked << std::endl;
+  std::cout << "==== solve end ====" << std::endl;
+
+  return best_state;
+}
+
+int main(void){
+  problem pr;
+  parse(std::cin, pr);
+  std::cout << pr.is_active_col.count() << std::endl;
+  std::cout << pr.is_active_col << std::endl;
+
+  State best_state = solve(pr);
   std::cout << "the best set is: " << std::endl;
   for(int i=0; i<pr.cols; i++){
-    if(best_list[i]) std::cout << i << " ";
+    if(best_state.active_cols[i]) std::cout << i << " ";
   }
+
   std::cout << std::endl;
   return 0;
 }
