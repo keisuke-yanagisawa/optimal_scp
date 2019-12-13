@@ -2,6 +2,8 @@
 #include <vector>
 #include <bitset>
 #include <cassert>
+#include <numeric>   //std::iota
+#include <algorithm> //std::sort
 
 template <unsigned MAX_SIZE>
 struct problem{
@@ -10,6 +12,7 @@ public:
   std::vector<int> col_costs;
   std::vector<std::bitset<MAX_SIZE> > col_covers;
   std::bitset<MAX_SIZE> is_active_col;
+  std::vector<int> col_indices;
   void init();
   void parse(std::istream& is);
 private: 
@@ -27,17 +30,38 @@ namespace {
 
 template <unsigned MAX_SIZE>
 void problem<MAX_SIZE>::init(){
+  std::vector<int> col_indices(cols);
+  std::iota(col_indices.begin(), col_indices.end(), 0);
+  sort(col_indices.begin(), col_indices.end(), 
+       [this](size_t i1, size_t i2){
+	 return col_costs[i1] == col_costs[i2] ? 
+	   col_covers[i1].count() > col_covers[i2].count() : 
+	   col_costs[i1] < col_costs[i2];
+       });
+  std::vector<std::bitset<MAX_SIZE> > new_col_covers;
+  std::vector<int> new_col_costs;
+  for(const auto& elem: col_indices){
+    new_col_covers.push_back(col_covers[elem]);
+    new_col_costs.push_back(col_costs[elem]);
+  }
+  col_covers = new_col_covers;
+  col_costs = new_col_costs;
+
+  detect_active_cols();
+  verify();
+
+  for(const auto& elem: col_covers){
+    std::cout << elem << std::endl;
+  }
+}
+
+template <unsigned MAX_SIZE>
+void problem<MAX_SIZE>::detect_active_cols(){
   is_active_col = std::bitset<MAX_SIZE>();
   for(int i=0; i<cols; i++){
     is_active_col[i] = true;
   }
   
-  detect_active_cols();
-  verify();
-}
-
-template <unsigned MAX_SIZE>
-void problem<MAX_SIZE>::detect_active_cols(){
   for(int i=0; i<col_covers.size(); i++){
     for(int j=0; j<col_covers.size(); j++){
       if(i==j) continue;
@@ -63,6 +87,7 @@ void problem<MAX_SIZE>::verify(){
     test_val |= col_covers[i];
   }
   assert(rows == test_val.count());
+
 }
 
 template <unsigned MAX_SIZE>
@@ -84,9 +109,6 @@ void problem<MAX_SIZE>::parse(std::istream& is){
       is >> temp;
       col_covers[temp-1][i] = true;
     }
-  }
-  for(const auto& elem: col_covers){
-    std::cout << elem << std::endl;
   }
 
   init();
