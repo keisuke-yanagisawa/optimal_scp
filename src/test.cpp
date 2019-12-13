@@ -10,56 +10,14 @@
 #include <bitset>
 #include <cassert>
 
-const int MAX_NUM=150;
-
-bool issubset(const std::bitset<MAX_NUM>& lhs, const std::bitset<MAX_NUM>& rhs){
-  return (lhs & (~rhs)).count()==0;
-}
-
-struct problem{
-  short rows, cols;
-  std::vector<int> col_costs;
-  std::vector<std::bitset<MAX_NUM> > col_covers;
-  std::bitset<MAX_NUM> is_active_col;
-  void init(){
-    is_active_col = std::bitset<MAX_NUM>();
-    for(int i=0; i<cols; i++){
-      is_active_col[i] = true;
-    }
-    
-    for(int i=0; i<col_covers.size(); i++){
-      for(int j=0; j<col_covers.size(); j++){
-	if(i==j) continue;
-	if(col_costs[i] <= col_costs[j] && is_active_col[i]
-	   && issubset(col_covers[j], col_covers[i])){
-	  is_active_col[j] = false;
-	}
-      }
-    }
-  }
-  
-  void verify(){
-    std::bitset<MAX_NUM> test_val;
-    for(int i=0; i<cols; i++){
-      test_val |= col_covers[i];
-    }
-    assert(rows == test_val.count());
-    
-    test_val = std::bitset<MAX_NUM>();
-    for(int i=0; i<cols; i++){
-      if(!is_active_col[i]) continue;
-      test_val |= col_covers[i];
-    }
-    assert(rows == test_val.count());
-  }
-
-};
+#include "const.hpp"
+#include "problem.hpp"
 
 struct State{  
-  std::bitset<MAX_NUM> satisfied_rows;
-  std::bitset<MAX_NUM> active_cols;
+  std::bitset<param::MAX_NUM> satisfied_rows;
+  std::bitset<param::MAX_NUM> active_cols;
   int cost = 0;
-  State activate_col(int col_id, const problem& pr) const{
+  State activate_col(int col_id, const problem<param::MAX_NUM>& pr) const{
     State new_state = *this;
     new_state.active_cols[col_id] = true;
     new_state.satisfied_rows |= pr.col_covers[col_id];
@@ -68,35 +26,7 @@ struct State{
   }
 };
 
-void parse(std::istream& is, problem& p){
-  is >> p.rows >> p.cols;
-  for(int i=0; i<p.cols; i++){
-    int temp;
-    is >> temp;
-    p.col_costs.push_back(temp);
-  }
-
-  p.col_covers = std::vector<std::bitset<MAX_NUM> >(p.cols);
-  
-  for(int i=0; i<p.rows; i++){
-    int num;
-    is >> num;
-    for(int j=0; j<num; j++){
-      int temp;
-      is >> temp;
-      p.col_covers[temp-1][i] = true;
-    }
-  }
-  for(const auto& elem: p.col_covers){
-    std::cout << elem << std::endl;
-  }
-
-
-  p.init();
-  p.verify();
-}
-
-State solve(const problem& pr){
+State solve(const problem<param::MAX_NUM>& pr){
 
   // initial state
   std::stack<State> stk;
@@ -168,8 +98,8 @@ State solve(const problem& pr){
 }
 
 int main(void){
-  problem pr;
-  parse(std::cin, pr);
+  problem<param::MAX_NUM> pr;
+  pr.parse(std::cin);
   std::cout << pr.is_active_col.count() << std::endl;
   std::cout << pr.is_active_col << std::endl;
 
