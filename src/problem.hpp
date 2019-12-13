@@ -1,44 +1,51 @@
 #include <iostream>
 #include <vector>
-#include <bitset>
+#include <set>
 #include <cassert>
 #include <numeric>   //std::iota
 #include <algorithm> //std::sort
 
-template <unsigned MAX_SIZE>
+#include "utils.hpp"
+
 struct problem{
 public:
   short rows, cols;
   std::vector<int> col_costs;
-  std::vector<std::bitset<MAX_SIZE> > col_covers;
-  std::bitset<MAX_SIZE> is_active_col;
+  std::vector<std::set<int> > col_covers;
   std::vector<int> col_indices;
   void init();
   void parse(std::istream& is);
+  void remove_col(int i);
 private: 
-  void detect_active_cols();
+  void remove_inactive_cols();
   void verify();
 };
 
 // --------------------Implementation---------------------
 
 namespace {
-  bool issubset(const std::bitset<param::MAX_NUM>& lhs, const std::bitset<param::MAX_NUM>& rhs){
-    return (lhs & (~rhs)).count()==0;
+  template <typename T>
+  bool issubset(const std::set<T>& lhs, const std::set<T>& rhs){
+    std::set<T> tmp = rhs;
+    for(const auto& elem: lhs) tmp.insert(elem);
+    return (tmp.size() - rhs.size()) == 0;
   }
 }
 
-template <unsigned MAX_SIZE>
-void problem<MAX_SIZE>::init(){
-  std::vector<int> col_indices(cols);
+void problem::init(){
+  for(const auto& elem: col_covers){
+    utils::dump(elem);
+  }
+
+  col_indices = std::vector<int>(cols);
   std::iota(col_indices.begin(), col_indices.end(), 0);
   sort(col_indices.begin(), col_indices.end(), 
        [this](size_t i1, size_t i2){
 	 return col_costs[i1] == col_costs[i2] ? 
-	   col_covers[i1].count() > col_covers[i2].count() : 
+	   col_covers[i1].size() >= col_covers[i2].size() : 
 	   col_costs[i1] < col_costs[i2];
        });
-  std::vector<std::bitset<MAX_SIZE> > new_col_covers;
+  std::vector<std::set<int> > new_col_covers;
   std::vector<int> new_col_costs;
   for(const auto& elem: col_indices){
     new_col_covers.push_back(col_covers[elem]);
@@ -47,51 +54,45 @@ void problem<MAX_SIZE>::init(){
   col_covers = new_col_covers;
   col_costs = new_col_costs;
 
-  detect_active_cols();
+  remove_inactive_cols();
+  //detect_active_cols();
   verify();
-
-  for(const auto& elem: col_covers){
-    std::cout << elem << std::endl;
-  }
 }
 
-template <unsigned MAX_SIZE>
-void problem<MAX_SIZE>::detect_active_cols(){
-  is_active_col = std::bitset<MAX_SIZE>();
-  for(int i=0; i<cols; i++){
-    is_active_col[i] = true;
-  }
-  
+void problem::remove_col(int i){
+  col_costs.erase(col_costs.begin()+i);
+  col_covers.erase(col_covers.begin()+i);
+  col_indices.erase(col_indices.begin()+i);
+  cols--;
+}
+void problem::remove_inactive_cols(){
+  std::vector<bool> is_active_col = std::vector<bool>(cols, true);
+
   for(int i=0; i<col_covers.size(); i++){
-    for(int j=0; j<col_covers.size(); j++){
-      if(i==j) continue;
+    for(int j=i+1; j<col_covers.size(); j++){
       if(col_costs[i] <= col_costs[j] && is_active_col[i]
 	 && issubset(col_covers[j], col_covers[i])){
 	is_active_col[j] = false;
       }
     }
   }
+
+  for(int i=cols-1; i>=0; i--){
+    if(is_active_col[i]) continue;
+    is_active_col.erase(is_active_col.begin()+i);
+    remove_col(i);
+  }
 }
 
-template <unsigned MAX_SIZE>
-void problem<MAX_SIZE>::verify(){
-  std::bitset<MAX_SIZE> test_val;
+void problem::verify(){
+  std::set<int> test_val;
   for(int i=0; i<cols; i++){
-    test_val |= col_covers[i];
+    for(const auto& elem: col_covers[i]) test_val.insert(elem);
   }
-  assert(rows == test_val.count());
-  
-  test_val = std::bitset<MAX_SIZE>();
-  for(int i=0; i<cols; i++){
-    if(!is_active_col[i]) continue;
-    test_val |= col_covers[i];
-  }
-  assert(rows == test_val.count());
-
+  assert(rows == test_val.size());
 }
 
-template <unsigned MAX_SIZE>
-void problem<MAX_SIZE>::parse(std::istream& is){
+void problem::parse(std::istream& is){
   is >> rows >> cols;
   for(int i=0; i<cols; i++){
     int temp;
@@ -99,7 +100,7 @@ void problem<MAX_SIZE>::parse(std::istream& is){
     col_costs.push_back(temp);
   }
 
-  col_covers = std::vector<std::bitset<MAX_SIZE> >(cols);
+  col_covers = std::vector<std::set<int> >(cols);
   
   for(int i=0; i<rows; i++){
     int num;
@@ -107,9 +108,8 @@ void problem<MAX_SIZE>::parse(std::istream& is){
     for(int j=0; j<num; j++){
       int temp;
       is >> temp;
-      col_covers[temp-1][i] = true;
+      col_covers[temp-1].insert(i);
     }
   }
-
   init();
 }
