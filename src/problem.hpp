@@ -7,6 +7,9 @@
 
 #include "utils.hpp"
 
+#ifndef PROBLEM_HPP_
+#define PROBLEM_HPP_
+
 struct problem{
 public:
   short rows, cols;
@@ -113,3 +116,5 @@ void problem::parse(std::istream& is){
   }
   init();
 }
+
+#endif
