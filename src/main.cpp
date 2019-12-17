@@ -1,4 +1,9 @@
 #include <iostream>
+#include <set>
+#include <cmath>
+#include <cassert>
+#include <algorithm>
+#include <stack>
 
 #include "utils.hpp"
 #include "problem.hpp"
@@ -6,11 +11,76 @@
 #include "beasley1990.hpp"
 
 
+std::set<int> optimize(problem pr, state st, std::set<int>& actives){
+  if(pr.cols == 0) return actives;
+
+  std::cout << "optimize" << std::endl;
+  utils::dump(pr.col_costs);
+  utils::dump(st.t);
+  std::vector<double> tmp = pr.col_costs;
+  for(int i=0; i<pr.rows; i++){
+    for(int j=0; j<pr.cols; j++){
+      tmp[j] -= pr.col_covers[j][i]*st.t[i];
+    }
+  }
+  std::set<int> ZUB_set = st.Z_UB_set;
+  double now_ZUB = st.Z_UB;
+  double now_ZLB = st.Z_LB;
+
+  std::stack<std::vector<bool> > stk;
+  stk.push(std::vector<bool>(1, true));
+  stk.push(std::vector<bool>(1, false));
+  while(!stk.empty()){
+    std::vector<bool> now = stk.top();
+    std::cout << "opt: "; utils::dump(now);
+    stk.pop();
+    
+    problem new_pr = pr;
+    std::set<int> new_actives = actives;
+    int true_cnt = 0;
+    for(int i=now.size()-1; i>=0; i--){
+      if(now[i]){
+	new_actives.insert(new_pr.col_indices[i]);
+	new_pr.remove_col(i, true);
+	true_cnt++;
+      }else{
+	new_pr.remove_col(i, false);
+      }
+    }
+    if(!new_pr.solvable()) continue;
+    
+    state ret = primal_dual(new_pr, new_actives);
+    std::cout << "opt-ret: " << ret.Z_LB << " " << ret.Z_UB << std::endl;
+    if(now_ZUB > ret.Z_UB){
+      now_ZUB = ret.Z_UB;
+      ZUB_set = ret.Z_UB_set;
+    }else if(now_ZUB <= ret.Z_LB){
+      continue;
+      // unfeasible
+    }else{
+      // branching
+      now.push_back(true);
+      stk.push(now);
+      now[now.size()-1] = false;
+      stk.push(now);
+    }
+  }
+
+  return ZUB_set;
+}
+
 int main(void){
   problem pr;
   pr.parse(std::cin);
-  state result = primal_dual(pr);
+  if(!pr.solvable()) return 1;
+
+  std::set<int> actives;
+
+  state result = primal_dual(pr, actives);
   utils::dump(result.Z_UB_set);
-  std::cout << pr.rows << " " << pr.cols << std::endl;
+  utils::dump(actives);
+  std::set<int> best_set = optimize(pr, result, actives);
+  
+  utils::dump(best_set);
   return 0;
 }

@@ -39,7 +39,7 @@ void problem::init(){
 	   col_costs[i1] < col_costs[i2];
        });
   std::vector<std::vector<int> > new_col_covers;
-  std::vector<int> new_col_costs;
+  std::vector<double> new_col_costs;
   for(const auto& elem: col_indices){
     new_col_covers.push_back(col_covers[elem]);
     new_col_costs.push_back(col_costs[elem]);
@@ -48,7 +48,6 @@ void problem::init(){
   col_costs = new_col_costs;
 
   remove_inactive_cols();
-  verify();
 }
 
 void problem::remove_row(int i){
@@ -60,6 +59,7 @@ void problem::remove_row(int i){
 }
 void problem::remove_col(int i, bool is_active){
   std::cout << "remove_col(" << i << ", " << is_active << ")" << std::endl;
+  std::cout << "col_indices["<<i<<"] = " << col_indices[i] << std::endl;
   std::vector<int> removed_cover = col_covers[i];
   col_costs.erase(col_costs.begin()+i);
   col_covers.erase(col_covers.begin()+i);
@@ -91,14 +91,14 @@ void problem::remove_inactive_cols(){
   }
 }
 
-void problem::verify(){
+bool problem::solvable() const{
   std::set<int> test_val;
   for(int j=0; j<cols; j++){
     for(int i=0; i<rows; i++){
       if(col_covers[j][i]) test_val.insert(i);
     }
   }
-  assert(rows == test_val.size());
+  return rows == test_val.size();
 }
 
 void problem::parse(std::istream& is){
