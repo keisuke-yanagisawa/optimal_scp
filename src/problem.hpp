@@ -8,16 +8,16 @@
 struct problem{
 public:
   short rows, cols;
-  std::vector<int> col_costs;
+  std::vector<double> col_costs;
   std::vector<std::vector<int> > col_covers;
   std::vector<int> col_indices;
   void init();
   void parse(std::istream& is);
   void remove_col(int i, bool is_active);
+  bool solvable() const;
 private: 
   void remove_row(int i);
   void remove_inactive_cols();
-  void verify();
 };
 
 #endif

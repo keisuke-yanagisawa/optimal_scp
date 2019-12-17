@@ -6,6 +6,6 @@
 #ifndef BEASLEY1990_HPP_
 #define BEASLEY1990_HPP_
 
-state primal_dual(problem& pr, std::set<int>& actives, double& active_cost);
+state primal_dual(problem& pr, std::set<int>& actives);
 
 #endif

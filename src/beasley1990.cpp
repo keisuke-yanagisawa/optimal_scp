@@ -183,18 +183,15 @@ void update_t(const problem& pr, state& st, double f){
 }
 }
 
-state primal_dual(problem& pr, std::set<int>& actives, double& actives_cost){
+state primal_dual(problem& pr, std::set<int>& actives){
   state st(pr);
-  actives = std::set<int>();
-  actives_cost = 0;
-
 
   int loops = 0;
   double f = 0.5;
   int last_Z_max_updated = -1;
   int last_pr_cols = pr.cols;
   while(f > 0.005){
-    double Z_LB = llbp(pr, st) + actives_cost;
+    double Z_LB = llbp(pr, st) + actives.size();
     if(Z_LB > st.Z_LB){
       st.Z_LB = Z_LB;
       last_Z_max_updated = loops;
@@ -205,7 +202,7 @@ state primal_dual(problem& pr, std::set<int>& actives, double& actives_cost){
       }
     }
     update_t(pr, st, f);
-    double Z_UB = construct_solution(pr, st) + actives_cost;
+    double Z_UB = construct_solution(pr, st) + actives.size();
     if(st.Z_UB > Z_UB){
       st.Z_UB = Z_UB;
       st.Z_UB_set = std::set<int>();
@@ -215,7 +212,9 @@ state primal_dual(problem& pr, std::set<int>& actives, double& actives_cost){
       for(const auto& elem: actives){
 	st.Z_UB_set.insert(elem);
       }
-
+      for(const auto& elem: actives){
+	st.Z_UB_set.insert(elem);
+      }
     }
     update_P(pr, st);
 
@@ -229,7 +228,6 @@ state primal_dual(problem& pr, std::set<int>& actives, double& actives_cost){
     for(const auto& elem: data.first){
       actives.insert(elem);
     }
-    actives_cost += data.second;
     
     if(last_pr_cols != pr.cols){
       // re-initialize
@@ -238,7 +236,7 @@ state primal_dual(problem& pr, std::set<int>& actives, double& actives_cost){
       last_pr_cols = pr.cols;
       //f = 2;
       int last_Z_max_updated = -1;
-      std::cout << actives_cost << ": ";
+      std::cout << actives.size() << ": ";
       utils::dump(actives);
     }
   }
