@@ -192,9 +192,8 @@ state primal_dual(problem pr){
   int last_Z_max_updated = -1;
   std::set<int> actives;
   int actives_cost = 0;
+  int last_pr_cols = pr.cols;
   while(f > 0.005){
-    std::cout << actives_cost << ": ";
-    utils::dump(actives);
     double Z_LB = llbp(pr, st) + actives_cost;
     if(Z_LB > st.Z_LB){
       st.Z_LB = Z_LB;
@@ -231,6 +230,15 @@ state primal_dual(problem pr){
       actives.insert(elem);
     }
     actives_cost += data.second;
+    
+    if(last_pr_cols != pr.cols){
+      // re-initialize
+      std::cout << "Problem has been shrinked" << std::endl;
+      st = state(pr);
+      last_pr_cols = pr.cols;
+      f = 2;
+      int last_Z_max_updated = -1;
+    }
   }
   return st;
 }
