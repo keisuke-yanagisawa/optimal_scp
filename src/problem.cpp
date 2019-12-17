@@ -60,6 +60,7 @@ void problem::remove_row(int i){
 }
 void problem::remove_col(int i, bool is_active){
   std::cout << "remove_col(" << i << ", " << is_active << ")" << std::endl;
+  std::cout << "col_indices["<<i<<"] = " << col_indices[i] << std::endl;
   std::vector<int> removed_cover = col_covers[i];
   col_costs.erase(col_costs.begin()+i);
   col_covers.erase(col_covers.begin()+i);

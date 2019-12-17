@@ -174,7 +174,7 @@ void update_t(const problem& pr, state& st, double f){
   }
   if(denominator == 0) return;
 
-  double T = f * (1.05*st.Z_UB - st.Z_LB) / denominator;
+  double T = f * (st.Z_UB - st.Z_LB) / denominator;
 
   for(int i=0; i<pr.rows; i++){
     st.t[i] += T*G[i];
@@ -183,15 +183,15 @@ void update_t(const problem& pr, state& st, double f){
 }
 }
 
-state primal_dual(problem pr){
+state primal_dual(problem& pr, std::set<int>& actives, double& actives_cost){
   state st(pr);
+  actives = std::set<int>();
+  actives_cost = 0;
 
 
   int loops = 0;
-  double f = 2;
+  double f = 0.5;
   int last_Z_max_updated = -1;
-  std::set<int> actives;
-  int actives_cost = 0;
   int last_pr_cols = pr.cols;
   while(f > 0.005){
     double Z_LB = llbp(pr, st) + actives_cost;
@@ -236,8 +236,10 @@ state primal_dual(problem pr){
       std::cout << "Problem has been shrinked" << std::endl;
       st = state(pr);
       last_pr_cols = pr.cols;
-      f = 2;
+      //f = 2;
       int last_Z_max_updated = -1;
+      std::cout << actives_cost << ": ";
+      utils::dump(actives);
     }
   }
   return st;
