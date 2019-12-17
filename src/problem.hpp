@@ -9,12 +9,13 @@ struct problem{
 public:
   short rows, cols;
   std::vector<int> col_costs;
-  std::vector<std::set<int> > col_covers;
+  std::vector<std::vector<int> > col_covers;
   std::vector<int> col_indices;
   void init();
   void parse(std::istream& is);
-  void remove_col(int i);
+  void remove_col(int i, bool is_active);
 private: 
+  void remove_row(int i);
   void remove_inactive_cols();
   void verify();
 };
