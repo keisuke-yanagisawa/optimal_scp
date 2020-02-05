@@ -124,34 +124,40 @@ void update_P(const problem& pr, state& st){
 
 std::pair<std::set<int>, int> remove_cols(problem& pr, state& st){
   // remove inactives
-  for(int j=pr.cols-1; j>=0; j--){
-    if(st.P[j] > st.Z_UB + 1e-4){
-      std::cout << "remove col " << j << std::endl;
-      pr.remove_col(j, false);
-      st.P.erase(st.P.begin()+j);
-    }
-  }
+  
+  //for(int j=pr.cols-1; j>=0; j--){
+  //  if(st.P[j] > st.Z_UB + 1e-4){
+  //    std::cout << "remove col " << j << std::endl;
+  //    pr.remove_col(j, false);
+  //    st.P.erase(st.P.begin()+j);
+  //  }
+  //}
 
   std::set<int> actives;
   int actives_cost = 0;
   bool flag = true;
+
+  // activation can chain thus while loop is needed
+  // TODO korehonntou?
   while(flag){
     flag = false;
     std::vector<int> num_included(pr.rows, 0);
     for(int j=0; j<pr.cols; j++){
+      if(actives.find(pr.col_indices[j]) != actives.end()) break;
       for(int i=0; i<pr.rows; i++){
 	if(pr.col_covers[j][i]) num_included[i]++;
       }
     }
     utils::dump(num_included);
     for(int i=pr.rows-1; i>=0; i--){
-      assert(num_included[i] != 0);
+      //assert(num_included[i] != 0);
       if(num_included[i] > 1) continue;
       for(int j=0; j<pr.cols; j++){
-	if(pr.col_covers[j][i]){
+	if(pr.col_covers[j][i] && actives.find(pr.col_indices[j]) == actives.end()){
+	  std::cout << j << " " << i << std::endl;
 	  actives.insert(pr.col_indices[j]);
 	  actives_cost += pr.col_costs[j];
-	  pr.remove_col(j, true);
+	  //pr.remove_col(j, true);
 	  flag = true;
 	  break;
 	}

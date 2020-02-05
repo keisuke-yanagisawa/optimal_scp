@@ -47,7 +47,7 @@ void problem::init(){
   col_covers = new_col_covers;
   col_costs = new_col_costs;
 
-  remove_inactive_cols();
+  //remove_inactive_cols();
 }
 
 void problem::remove_row(int i){
@@ -57,6 +57,7 @@ void problem::remove_row(int i){
   }
   rows--;
 }
+
 void problem::remove_col(int i, bool is_active){
   std::cout << "remove_col(" << i << ", " << is_active << ")" << std::endl;
   std::cout << "col_indices["<<i<<"] = " << col_indices[i] << std::endl;
@@ -72,6 +73,7 @@ void problem::remove_col(int i, bool is_active){
     }
   }
 }
+
 void problem::remove_inactive_cols(){
   std::vector<bool> is_possible_col = std::vector<bool>(cols, true);
 
