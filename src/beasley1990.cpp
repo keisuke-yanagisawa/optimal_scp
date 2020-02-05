@@ -112,9 +112,14 @@ std::vector<double> init_P(const problem& pr){
 void update_P(const problem& pr, state& st){
 //void update_P(const problem& pr, const std::set<int>& X, double Z_LB, std::vector<double>& P){
   for(int i=0; i<pr.cols; i++){
-    if(st.X.find(i) != st.X.end()) st.P[i] = std::max(st.P[i], st.Z_LB);
-    else                           st.P[i] = std::max(st.P[i], st.Z_LB + pr.col_costs[i]);
+    if(st.Z_UB_set.find(i) != st.Z_UB_set.end()) 
+      st.P[i] = std::max(st.P[i], st.Z_LB);
+    else   
+      st.P[i] = std::max(st.P[i], st.Z_LB + pr.col_costs[i]);
   }
+  utils::dump(st.Z_UB_set);
+  utils::dump(pr.col_indices);
+  utils::dump(st.P);
 }
 
 std::pair<std::set<int>, int> remove_cols(problem& pr, state& st){
@@ -187,7 +192,7 @@ state primal_dual(problem& pr, std::set<int>& actives){
   state st(pr);
 
   int loops = 0;
-  double f = 0.5;
+  double f = 0.5; // update rate
   int last_Z_max_updated = -1;
   int last_pr_cols = pr.cols;
   while(f > 0.005){
@@ -212,9 +217,7 @@ state primal_dual(problem& pr, std::set<int>& actives){
       for(const auto& elem: actives){
 	st.Z_UB_set.insert(elem);
       }
-      for(const auto& elem: actives){
-	st.Z_UB_set.insert(elem);
-      }
+      utils::dump(st.Z_UB_set);
     }
     update_P(pr, st);
 
