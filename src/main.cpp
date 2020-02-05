@@ -11,8 +11,8 @@
 #include "beasley1990.hpp"
 
 
-std::set<int> optimize(problem pr, state st, std::set<int>& actives){
-  if(pr.cols == 0) return actives;
+std::set<int> optimize(problem pr, state st){
+  if(pr.cols == 0) return st.actives;
 
   std::cout << "optimize" << std::endl;
   utils::dump(pr.col_costs);
@@ -36,7 +36,7 @@ std::set<int> optimize(problem pr, state st, std::set<int>& actives){
     stk.pop();
     
     problem new_pr = pr;
-    std::set<int> new_actives = actives;
+    std::set<int> new_actives = st.actives;
     int true_cnt = 0;
     for(int i=now.size()-1; i>=0; i--){
       if(now[i]){
@@ -49,7 +49,8 @@ std::set<int> optimize(problem pr, state st, std::set<int>& actives){
     }
     if(!new_pr.solvable()) continue;
     
-    state ret = primal_dual(new_pr, new_actives);
+    st.actives = new_actives;
+    state ret = primal_dual(new_pr, st);
     std::cout << "opt-ret: " << ret.Z_LB << " " << ret.Z_UB << std::endl;
     if(now_ZUB > ret.Z_UB){
       now_ZUB = ret.Z_UB;
@@ -74,12 +75,9 @@ int main(void){
   pr.parse(std::cin);
   if(!pr.solvable()) return 1;
 
-  std::set<int> actives;
-
-  state result = primal_dual(pr, actives);
+  state result = primal_dual(pr);
   utils::dump(result.Z_UB_set);
-  utils::dump(actives);
-  std::set<int> best_set = optimize(pr, result, actives);
+  std::set<int> best_set = optimize(pr, result);
   
   utils::dump(best_set);
   return 0;

@@ -143,6 +143,7 @@ std::pair<std::set<int>, int> remove_cols(problem& pr, state& st){
 	if(pr.col_covers[j][i]) num_included[i]++;
       }
     }
+    utils::dump(num_included);
     for(int i=pr.rows-1; i>=0; i--){
       assert(num_included[i] != 0);
       if(num_included[i] > 1) continue;
@@ -188,15 +189,15 @@ void update_t(const problem& pr, state& st, double f){
 }
 }
 
-state primal_dual(problem& pr, std::set<int>& actives){
-  state st(pr);
+state primal_dual(problem& pr, state& st){
+  st.actives = std::set<int>();
 
   int loops = 0;
   double f = 0.5; // update rate
   int last_Z_max_updated = -1;
   int last_pr_cols = pr.cols;
   while(f > 0.005){
-    double Z_LB = llbp(pr, st) + actives.size();
+    double Z_LB = llbp(pr, st) + st.actives.size();
     if(Z_LB > st.Z_LB){
       st.Z_LB = Z_LB;
       last_Z_max_updated = loops;
@@ -207,14 +208,14 @@ state primal_dual(problem& pr, std::set<int>& actives){
       }
     }
     update_t(pr, st, f);
-    double Z_UB = construct_solution(pr, st) + actives.size();
+    double Z_UB = construct_solution(pr, st) + st.actives.size();
     if(st.Z_UB > Z_UB){
       st.Z_UB = Z_UB;
       st.Z_UB_set = std::set<int>();
       for(const auto& elem: st.X){
 	st.Z_UB_set.insert(pr.col_indices[elem]);
       }
-      for(const auto& elem: actives){
+      for(const auto& elem: st.actives){
 	st.Z_UB_set.insert(elem);
       }
       utils::dump(st.Z_UB_set);
@@ -229,19 +230,27 @@ state primal_dual(problem& pr, std::set<int>& actives){
 
     auto data = remove_cols(pr, st);
     for(const auto& elem: data.first){
-      actives.insert(elem);
+      st.actives.insert(elem);
     }
     
     if(last_pr_cols != pr.cols){
       // re-initialize
       std::cout << "Problem has been shrinked" << std::endl;
+      std::set<int> tmp_actives = st.actives;
       st = state(pr);
+      st.actives = tmp_actives;
       last_pr_cols = pr.cols;
       //f = 2;
       int last_Z_max_updated = -1;
-      std::cout << actives.size() << ": ";
-      utils::dump(actives);
+      std::cout << st.actives.size() << ": ";
+      utils::dump(st.actives);
     }
   }
   return st;
 }
+
+state primal_dual(problem& pr){
+  state st(pr);
+  return primal_dual(pr, st);
+}
+
