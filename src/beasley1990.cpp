@@ -16,8 +16,8 @@ double construct_solution(const problem& pr, state& st){
   // check satisfaction by X
   for(int j=0; j<pr.cols; j++){
     if(st.X.find(j) == st.X.end()) continue;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.col_covers[j][i]) num_included[i]++;
+    for(const auto& elem: pr.sets[j].member){
+      num_included[elem]++;
     }
   }
 
@@ -25,10 +25,10 @@ double construct_solution(const problem& pr, state& st){
   for(int i=0; i<pr.rows; i++){
     if(num_included[i]) continue;
     for(int j=0; j<pr.cols; j++){
-      if(pr.col_covers[j][i]){
+      if(pr.sets[j].member.find(i) != pr.sets[j].member.end()){
 	st.X.insert(j);
-	for(int i2=0; i2<pr.rows; i2++){
-	  if(pr.col_covers[j][i2]) num_included[i2]++;
+	for(const auto& elem: pr.sets[j].member){
+	  num_included[elem]++;
 	}
       }
     }
@@ -38,24 +38,23 @@ double construct_solution(const problem& pr, state& st){
   for(int j=pr.cols-1; j>=0; j--){
     if(st.X.find(j) == st.X.end()) continue;
 
-    bool flag = true;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.col_covers[j][i]) flag &= num_included[i]>=2;
+    bool is_removable = true;
+    for(const auto& elem: pr.sets[j].member){
+      is_removable &= num_included[elem] >= 2;
     }
-    if(!flag) continue;
+    if(!is_removable) continue;
+
     st.X.erase(j);
-    for(int i=0; i<pr.rows; i++){
-      if(pr.col_covers[j][i]) num_included[i]--;
+    for(const auto& elem: pr.sets[j].member){
+      num_included[elem]--;
     }
   }
 
   //calculate total cost
   double cost = 0;
-  for(int j=0; j<pr.cols; j++){
-    if(st.X.find(j) == st.X.end()) continue;
-    cost += pr.col_costs[j];
+  for(const auto& elem: st.X){
+    cost += pr.sets[elem].cost;
   }
-
   return cost;
 
 }
@@ -66,9 +65,9 @@ double llbp(const problem& pr, state& st){
   // calculate C
   std::vector<double> C(pr.cols);
   for(int j=0; j<pr.cols; j++){
-    C[j] = pr.col_costs[j];
-    for(int i=0; i<pr.rows; i++){
-      if(pr.col_covers[j][i]) C[j]-=st.t[i];
+    C[j] = pr.sets[j].cost;
+    for(const auto& elem: pr.sets[j].member){
+      C[j] -= st.t[elem];
     }
   }
 
@@ -93,59 +92,71 @@ double llbp(const problem& pr, state& st){
 
 std::vector<double> init_t(const problem& pr){
   std::vector<double> t(pr.rows, 1e8);
-  for(int i=0; i<pr.rows; i++){
-    for(int j=0; j<pr.cols; j++){
-      if(pr.col_covers[j][i] 
-	 && t[i] > pr.col_costs[j]) t[i] = pr.col_costs[i];
+  for(int c=0; c<pr.cols; c++){
+    for(const auto& r: pr.sets[c].member){
+      t[r] = std::min(t[r], pr.sets[c].cost);
     }
   }
   return t;
 }
 std::vector<double> init_P(const problem& pr){
   std::vector<double> P;
-  for(const auto& elem: pr.col_costs){
-    P.push_back(elem);
+  for(int c=0; c<pr.sets.size(); c++){
+    P.push_back(pr.sets[c].cost);
   }
   return P;
 }
 
 void update_P(const problem& pr, state& st){
 //void update_P(const problem& pr, const std::set<int>& X, double Z_LB, std::vector<double>& P){
-  for(int i=0; i<pr.cols; i++){
-    if(st.X.find(i) != st.X.end()) st.P[i] = std::max(st.P[i], st.Z_LB);
-    else                           st.P[i] = std::max(st.P[i], st.Z_LB + pr.col_costs[i]);
+  for(int c=0; c<pr.sets.size(); c++){
+    if(st.Z_UB_set.find(c) != st.Z_UB_set.end()) 
+      st.P[c] = std::max(st.P[c], st.Z_LB);
+    else   
+      st.P[c] = std::max(st.P[c], st.Z_LB + pr.sets[c].cost);
   }
+  //utils::dump(st.Z_UB_set);
+  //utils::dump(pr.col_indices);
+  //utils::dump(st.P);
 }
 
-std::pair<std::set<int>, int> remove_cols(problem& pr, state& st){
+std::pair<std::set<int>, int> remove_cols(const problem& pr, state& st){
   // remove inactives
-  for(int j=pr.cols-1; j>=0; j--){
-    if(st.P[j] > st.Z_UB + 1e-4){
-      std::cout << "remove col " << j << std::endl;
-      pr.remove_col(j, false);
-      st.P.erase(st.P.begin()+j);
-    }
-  }
+  
+  //for(int j=pr.cols-1; j>=0; j--){
+  //  if(st.P[j] > st.Z_UB + 1e-4){
+  //    std::cout << "remove col " << j << std::endl;
+  //    pr.remove_col(j, false);
+  //    st.P.erase(st.P.begin()+j);
+  //  }
+  //}
 
   std::set<int> actives;
   int actives_cost = 0;
   bool flag = true;
+
+  // activation can chain thus while loop is needed
+  // TODO korehonntou?
   while(flag){
     flag = false;
     std::vector<int> num_included(pr.rows, 0);
     for(int j=0; j<pr.cols; j++){
-      for(int i=0; i<pr.rows; i++){
-	if(pr.col_covers[j][i]) num_included[i]++;
+      if(actives.find(pr.sets[j].ext_idx) != actives.end()) break;
+      for(const auto& elem: pr.sets[j].member){
+	num_included[elem]++;
       }
     }
+    //utils::dump(num_included);
     for(int i=pr.rows-1; i>=0; i--){
-      assert(num_included[i] != 0);
+      //assert(num_included[i] != 0);
       if(num_included[i] > 1) continue;
       for(int j=0; j<pr.cols; j++){
-	if(pr.col_covers[j][i]){
-	  actives.insert(pr.col_indices[j]);
-	  actives_cost += pr.col_costs[j];
-	  pr.remove_col(j, true);
+	if(pr.sets[j].member.find(i) != pr.sets[j].member.end()
+	   && actives.find(pr.sets[j].ext_idx) == actives.end()){
+	  std::cout << j << " " << i << std::endl;
+	  actives.insert(pr.sets[j].ext_idx);
+	  actives_cost += pr.sets[j].cost;
+	  //pr.remove_col(j, true);
 	  flag = true;
 	  break;
 	}
@@ -162,8 +173,8 @@ void update_t(const problem& pr, state& st, double f){
   std::vector<double> G(pr.rows, 1);
   for(int j=0; j<pr.cols; j++){
     if(st.X.find(j) == st.X.end()) continue;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.col_covers[j][i]) G[i]--;
+    for(const auto& elem: pr.sets[j].member){
+      G[elem]--;
     }
   }
 
@@ -183,15 +194,15 @@ void update_t(const problem& pr, state& st, double f){
 }
 }
 
-state primal_dual(problem& pr, std::set<int>& actives){
-  state st(pr);
+state primal_dual(const problem& pr, state& st){
+  st.active_cols = std::set<int>();
 
   int loops = 0;
-  double f = 0.5;
+  double f = 0.5; // update rate
   int last_Z_max_updated = -1;
   int last_pr_cols = pr.cols;
   while(f > 0.005){
-    double Z_LB = llbp(pr, st) + actives.size();
+    double Z_LB = llbp(pr, st) + st.active_cols.size();
     if(Z_LB > st.Z_LB){
       st.Z_LB = Z_LB;
       last_Z_max_updated = loops;
@@ -202,19 +213,17 @@ state primal_dual(problem& pr, std::set<int>& actives){
       }
     }
     update_t(pr, st, f);
-    double Z_UB = construct_solution(pr, st) + actives.size();
+    double Z_UB = construct_solution(pr, st) + st.active_cols.size();
     if(st.Z_UB > Z_UB){
       st.Z_UB = Z_UB;
       st.Z_UB_set = std::set<int>();
       for(const auto& elem: st.X){
-	st.Z_UB_set.insert(pr.col_indices[elem]);
+	st.Z_UB_set.insert(pr.sets[elem].ext_idx);
       }
-      for(const auto& elem: actives){
+      for(const auto& elem: st.active_cols){
 	st.Z_UB_set.insert(elem);
       }
-      for(const auto& elem: actives){
-	st.Z_UB_set.insert(elem);
-      }
+      //utils::dump(st.Z_UB_set);
     }
     update_P(pr, st);
 
@@ -222,23 +231,31 @@ state primal_dual(problem& pr, std::set<int>& actives){
     std::cout << "Step " << loops << ": " 
 	      << std::setprecision(12)
 	      << st.Z_LB << " <= z <= " << st.Z_UB << std::endl;
-    if(st.Z_LB > st.Z_UB + 1e-4) break;
+    if(st.Z_LB > st.Z_UB + constants::SMALL_VAL) break;
 
     auto data = remove_cols(pr, st);
     for(const auto& elem: data.first){
-      actives.insert(elem);
+      st.active_cols.insert(elem);
     }
     
     if(last_pr_cols != pr.cols){
       // re-initialize
       std::cout << "Problem has been shrinked" << std::endl;
+      std::set<int> tmp_actives = st.active_cols;
       st = state(pr);
+      st.active_cols = tmp_actives;
       last_pr_cols = pr.cols;
       //f = 2;
       int last_Z_max_updated = -1;
-      std::cout << actives.size() << ": ";
-      utils::dump(actives);
+      std::cout << st.active_cols.size() << ": ";
+      utils::dump(st.active_cols);
     }
   }
   return st;
 }
+
+state primal_dual(const problem& pr){
+  state st(pr);
+  return primal_dual(pr, st);
+}
+

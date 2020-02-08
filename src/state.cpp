@@ -19,15 +19,15 @@ state::state(const problem& pr){
 
 void state::init_t(){
   t = std::vector<double>(pr.rows, 1e8);
-  for(int i=0; i<pr.rows; i++){
-    for(int j=0; j<pr.cols; j++){
-      if(pr.col_covers[j][i] && t[i] > pr.col_costs[j]) t[i] = pr.col_costs[j];
+  for(int j=0; j<pr.cols; j++){
+    for(const auto& elem: pr.sets[j].member){
+      t[elem] = std::min(t[elem], pr.sets[j].cost);
     }
   }
 }
 
 void state::init_P(){
-  for(const auto& elem: pr.col_costs){
-    P.push_back(elem);
+  for(const auto& elem: pr.sets){
+    P.push_back(elem.cost);
   }
 }
