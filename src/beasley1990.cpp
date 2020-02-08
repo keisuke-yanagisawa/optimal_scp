@@ -122,7 +122,7 @@ void update_P(const problem& pr, state& st){
   //utils::dump(st.P);
 }
 
-std::pair<std::set<int>, int> remove_cols(problem& pr, state& st){
+std::pair<std::set<int>, int> remove_cols(const problem& pr, state& st){
   // remove inactives
   
   //for(int j=pr.cols-1; j>=0; j--){
@@ -195,7 +195,7 @@ void update_t(const problem& pr, state& st, double f){
 }
 }
 
-state primal_dual(problem& pr, state& st){
+state primal_dual(const problem& pr, state& st){
   st.active_cols = std::set<int>();
 
   int loops = 0;
@@ -255,7 +255,7 @@ state primal_dual(problem& pr, state& st){
   return st;
 }
 
-state primal_dual(problem& pr){
+state primal_dual(const problem& pr){
   state st(pr);
   return primal_dual(pr, st);
 }

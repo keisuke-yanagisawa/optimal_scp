@@ -11,7 +11,7 @@
 #include "beasley1990.hpp"
 
 
-std::set<int> optimize(problem pr, state st){
+std::set<int> optimize(const problem& pr, state st){
   if(pr.cols == 0) return st.active_cols;
 
   std::cout << "optimize" << std::endl;
