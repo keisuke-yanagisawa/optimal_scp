@@ -196,14 +196,14 @@ void update_t(const problem& pr, state& st, double f){
 }
 
 state primal_dual(problem& pr, state& st){
-  st.actives = std::set<int>();
+  st.active_cols = std::set<int>();
 
   int loops = 0;
   double f = 0.5; // update rate
   int last_Z_max_updated = -1;
   int last_pr_cols = pr.cols;
   while(f > 0.005){
-    double Z_LB = llbp(pr, st) + st.actives.size();
+    double Z_LB = llbp(pr, st) + st.active_cols.size();
     if(Z_LB > st.Z_LB){
       st.Z_LB = Z_LB;
       last_Z_max_updated = loops;
@@ -214,14 +214,14 @@ state primal_dual(problem& pr, state& st){
       }
     }
     update_t(pr, st, f);
-    double Z_UB = construct_solution(pr, st) + st.actives.size();
+    double Z_UB = construct_solution(pr, st) + st.active_cols.size();
     if(st.Z_UB > Z_UB){
       st.Z_UB = Z_UB;
       st.Z_UB_set = std::set<int>();
       for(const auto& elem: st.X){
 	st.Z_UB_set.insert(pr.sets[elem].ext_idx);
       }
-      for(const auto& elem: st.actives){
+      for(const auto& elem: st.active_cols){
 	st.Z_UB_set.insert(elem);
       }
       //utils::dump(st.Z_UB_set);
@@ -236,20 +236,20 @@ state primal_dual(problem& pr, state& st){
 
     auto data = remove_cols(pr, st);
     for(const auto& elem: data.first){
-      st.actives.insert(elem);
+      st.active_cols.insert(elem);
     }
     
     if(last_pr_cols != pr.cols){
       // re-initialize
       std::cout << "Problem has been shrinked" << std::endl;
-      std::set<int> tmp_actives = st.actives;
+      std::set<int> tmp_actives = st.active_cols;
       st = state(pr);
-      st.actives = tmp_actives;
+      st.active_cols = tmp_actives;
       last_pr_cols = pr.cols;
       //f = 2;
       int last_Z_max_updated = -1;
-      std::cout << st.actives.size() << ": ";
-      utils::dump(st.actives);
+      std::cout << st.active_cols.size() << ": ";
+      utils::dump(st.active_cols);
     }
   }
   return st;

@@ -12,7 +12,7 @@
 
 
 std::set<int> optimize(problem pr, state st){
-  if(pr.cols == 0) return st.actives;
+  if(pr.cols == 0) return st.active_cols;
 
   std::cout << "optimize" << std::endl;
   //utils::dump(pr.col_costs);
@@ -39,7 +39,7 @@ std::set<int> optimize(problem pr, state st){
     stk.pop();
     
     problem new_pr = pr;
-    std::set<int> new_actives = st.actives;
+    std::set<int> new_actives = st.active_cols;
     int true_cnt = 0;
     for(int i=now.size()-1; i>=0; i--){
       if(now[i]){
@@ -52,7 +52,7 @@ std::set<int> optimize(problem pr, state st){
     }
     if(!new_pr.solvable()) continue;
     
-    st.actives = new_actives;
+    st.active_cols = new_actives;
     state ret = primal_dual(new_pr, st);
     std::cout << "opt-ret: " << ret.Z_LB << " " << ret.Z_UB << std::endl;
     if(now_ZUB > ret.Z_UB){

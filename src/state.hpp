@@ -10,7 +10,7 @@
 struct state{
 public: 
   problem pr;
-  std::set<int> actives;
+  std::set<int> active_cols;
   double Z_UB, Z_LB;
   std::vector<double> t, P;
   std::set<int> X;

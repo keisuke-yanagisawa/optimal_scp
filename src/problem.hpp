@@ -33,7 +33,6 @@ struct problem{
 public:
   short rows, cols;
   std::vector<scp::set> sets;
-  std::vector<int> col_indices;
   void init();
   void parse(std::istream& is);
   void remove_col(int i, bool is_active);
