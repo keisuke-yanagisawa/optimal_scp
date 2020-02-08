@@ -232,7 +232,7 @@ state primal_dual(problem& pr, state& st){
     std::cout << "Step " << loops << ": " 
 	      << std::setprecision(12)
 	      << st.Z_LB << " <= z <= " << st.Z_UB << std::endl;
-    if(st.Z_LB > st.Z_UB + 1e-4) break;
+    if(st.Z_LB > st.Z_UB + constants::SMALL_VAL) break;
 
     auto data = remove_cols(pr, st);
     for(const auto& elem: data.first){
