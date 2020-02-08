@@ -23,7 +23,7 @@ std::set<int> optimize(problem pr, state st){
   }
   for(int r=0; r<pr.rows; r++){
     for(int c=0; c<pr.cols; c++){
-      tmp[c] -= pr.col_covers[c][r]*st.t[r];
+      tmp[c] -= pr.sets[c].member[r] * st.t[r];
     }
   }
   std::set<int> ZUB_set = st.Z_UB_set;
@@ -43,7 +43,7 @@ std::set<int> optimize(problem pr, state st){
     int true_cnt = 0;
     for(int i=now.size()-1; i>=0; i--){
       if(now[i]){
-	new_actives.insert(new_pr.col_indices[i]);
+	new_actives.insert(new_pr.sets[i].ext_idx);
 	new_pr.remove_col(i, true);
 	true_cnt++;
       }else{

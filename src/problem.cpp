@@ -24,9 +24,11 @@ namespace {
   }
 }
 
+// TODO ambiguious order init() and parse()
+// now init() is just after parse()
 void problem::init(){
-  for(const auto& elem: col_covers){
-    utils::dump(elem);
+  for(const auto& elem: sets){
+    utils::dump(elem.member);
   }
 
   col_indices = std::vector<int>(cols);
@@ -34,17 +36,14 @@ void problem::init(){
   sort(col_indices.begin(), col_indices.end(), 
        [this](size_t i1, size_t i2){
 	 return sets[i1].cost == sets[i2].cost ? 
-	   std::accumulate(col_covers[i1].begin(), col_covers[i1].end(), 0) 
-	     >= std::accumulate(col_covers[i2].begin(), col_covers[i2].end(), 0) : 
+	   std::accumulate(sets[i1].member.begin(), sets[i1].member.end(), 0) 
+	     >= std::accumulate(sets[i2].member.begin(), sets[i2].member.end(), 0) : 
 	   sets[i1].cost < sets[i2].cost;
        });
-  std::vector<std::vector<int> > new_col_covers;
   std::vector<scp::set> new_sets;
   for(const auto& elem: col_indices){
-    new_col_covers.push_back(col_covers[elem]);
     new_sets.push_back(sets[elem]);
   }
-  col_covers = new_col_covers;
   sets = new_sets;
 
   //remove_inactive_cols();
@@ -53,18 +52,16 @@ void problem::init(){
 void problem::remove_row(int i){
   std::cout << "remove_row(" << i << ")" << std::endl;
   for(int j=0; j<cols; j++){
-    col_covers[j].erase(col_covers[j].begin()+i);
+    sets[j].member.erase(sets[j].member.begin()+i);
   }
   rows--;
 }
 
 void problem::remove_col(int i, bool is_active){
   std::cout << "remove_col(" << i << ", " << is_active << ")" << std::endl;
-  std::cout << "col_indices["<<i<<"] = " << col_indices[i] << std::endl;
-  std::vector<int> removed_cover = col_covers[i];
+  std::cout << "sets["<<i<<"].ext_idx = " << sets[i].ext_idx << std::endl;
+  std::vector<int> removed_cover = sets[i].member;
   sets.erase(sets.begin()+i);
-  col_covers.erase(col_covers.begin()+i);
-  col_indices.erase(col_indices.begin()+i);
   cols--;
 
   if(is_active){
@@ -77,10 +74,10 @@ void problem::remove_col(int i, bool is_active){
 void problem::remove_inactive_cols(){
   std::vector<bool> is_possible_col = std::vector<bool>(cols, true);
 
-  for(int i=0; i<col_covers.size(); i++){
-    for(int j=i+1; j<col_covers.size(); j++){
+  for(int i=0; i<sets.size(); i++){
+    for(int j=i+1; j<sets.size(); j++){
       if(sets[i].cost <= sets[j].cost && is_possible_col[i]
-	 && issubset(col_covers[j], col_covers[i])){
+	 && issubset(sets[j].member, sets[i].member)){
 	is_possible_col[j] = false;
       }
     }
@@ -97,7 +94,7 @@ bool problem::solvable() const{
   std::set<int> test_val;
   for(int j=0; j<cols; j++){
     for(int i=0; i<rows; i++){
-      if(col_covers[j][i]) test_val.insert(i);
+      if(sets[j].member[i]) test_val.insert(i);
     }
   }
   return rows == test_val.size();
@@ -108,9 +105,9 @@ void problem::parse(std::istream& is){
   sets = std::vector<scp::set>(cols);
   for(int i=0; i<cols; i++){
     is >> sets[i].cost;
+    sets[i].ext_idx = i; //0-origin
+    sets[i].member = std::vector<r_idx>(rows, 0);
   }
-
-  col_covers = std::vector<std::vector<int> >(cols, std::vector<int>(rows, 0));
   
   for(int i=0; i<rows; i++){
     int num;
@@ -118,7 +115,7 @@ void problem::parse(std::istream& is){
     for(int j=0; j<num; j++){
       int temp;
       is >> temp;
-      col_covers[temp-1][i] = 1;
+      sets[temp-1].member[i] = 1;
     }
   }
   init();

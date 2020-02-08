@@ -21,7 +21,7 @@ void state::init_t(){
   t = std::vector<double>(pr.rows, 1e8);
   for(int i=0; i<pr.rows; i++){
     for(int j=0; j<pr.cols; j++){
-      if(pr.col_covers[j][i] && t[i] > pr.sets[j].cost) t[i] = pr.sets[j].cost;
+      if(pr.sets[j].member[i] && t[i] > pr.sets[j].cost) t[i] = pr.sets[j].cost;
     }
   }
 }
