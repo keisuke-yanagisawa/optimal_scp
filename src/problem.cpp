@@ -33,19 +33,19 @@ void problem::init(){
   std::iota(col_indices.begin(), col_indices.end(), 0);
   sort(col_indices.begin(), col_indices.end(), 
        [this](size_t i1, size_t i2){
-	 return col_costs[i1] == col_costs[i2] ? 
+	 return sets[i1].cost == sets[i2].cost ? 
 	   std::accumulate(col_covers[i1].begin(), col_covers[i1].end(), 0) 
 	     >= std::accumulate(col_covers[i2].begin(), col_covers[i2].end(), 0) : 
-	   col_costs[i1] < col_costs[i2];
+	   sets[i1].cost < sets[i2].cost;
        });
   std::vector<std::vector<int> > new_col_covers;
-  std::vector<double> new_col_costs;
+  std::vector<scp::set> new_sets;
   for(const auto& elem: col_indices){
     new_col_covers.push_back(col_covers[elem]);
-    new_col_costs.push_back(col_costs[elem]);
+    new_sets.push_back(sets[elem]);
   }
   col_covers = new_col_covers;
-  col_costs = new_col_costs;
+  sets = new_sets;
 
   //remove_inactive_cols();
 }
@@ -62,7 +62,7 @@ void problem::remove_col(int i, bool is_active){
   std::cout << "remove_col(" << i << ", " << is_active << ")" << std::endl;
   std::cout << "col_indices["<<i<<"] = " << col_indices[i] << std::endl;
   std::vector<int> removed_cover = col_covers[i];
-  col_costs.erase(col_costs.begin()+i);
+  sets.erase(sets.begin()+i);
   col_covers.erase(col_covers.begin()+i);
   col_indices.erase(col_indices.begin()+i);
   cols--;
@@ -79,7 +79,7 @@ void problem::remove_inactive_cols(){
 
   for(int i=0; i<col_covers.size(); i++){
     for(int j=i+1; j<col_covers.size(); j++){
-      if(col_costs[i] <= col_costs[j] && is_possible_col[i]
+      if(sets[i].cost <= sets[j].cost && is_possible_col[i]
 	 && issubset(col_covers[j], col_covers[i])){
 	is_possible_col[j] = false;
       }
@@ -105,10 +105,9 @@ bool problem::solvable() const{
 
 void problem::parse(std::istream& is){
   is >> rows >> cols;
+  sets = std::vector<scp::set>(cols);
   for(int i=0; i<cols; i++){
-    int temp;
-    is >> temp;
-    col_costs.push_back(temp);
+    is >> sets[i].cost;
   }
 
   col_covers = std::vector<std::vector<int> >(cols, std::vector<int>(rows, 0));

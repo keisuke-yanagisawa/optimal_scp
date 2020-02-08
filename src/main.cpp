@@ -15,12 +15,15 @@ std::set<int> optimize(problem pr, state st){
   if(pr.cols == 0) return st.actives;
 
   std::cout << "optimize" << std::endl;
-  utils::dump(pr.col_costs);
+  //utils::dump(pr.col_costs);
   utils::dump(st.t);
-  std::vector<double> tmp = pr.col_costs;
-  for(int i=0; i<pr.rows; i++){
-    for(int j=0; j<pr.cols; j++){
-      tmp[j] -= pr.col_covers[j][i]*st.t[i];
+  std::vector<double> tmp(pr.sets.size());
+  for(int c=0; c<pr.sets.size(); c++){
+    tmp[c] = pr.sets[c].cost;
+  }
+  for(int r=0; r<pr.rows; r++){
+    for(int c=0; c<pr.cols; c++){
+      tmp[c] -= pr.col_covers[c][r]*st.t[r];
     }
   }
   std::set<int> ZUB_set = st.Z_UB_set;
