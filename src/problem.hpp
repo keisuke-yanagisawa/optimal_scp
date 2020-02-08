@@ -17,13 +17,11 @@ namespace scp{
   struct set{
     extern_c_idx ext_idx;
     double cost;
-    std::vector<r_idx> member;
+    std::set<r_idx> member;
 
     bool operator<(const set &o) const{
       if(cost != o.cost) return cost < o.cost;
-      int member_counts   = std::accumulate(member.begin(), member.end(), 0);
-      int member_counts_o = std::accumulate(o.member.begin(), o.member.end(), 0);
-      return member_counts >= member_counts_o;
+      return member.size() >= o.member.size();
     }
   };
 }

@@ -19,9 +19,9 @@ state::state(const problem& pr){
 
 void state::init_t(){
   t = std::vector<double>(pr.rows, 1e8);
-  for(int i=0; i<pr.rows; i++){
-    for(int j=0; j<pr.cols; j++){
-      if(pr.sets[j].member[i] && t[i] > pr.sets[j].cost) t[i] = pr.sets[j].cost;
+  for(int j=0; j<pr.cols; j++){
+    for(const auto& elem: pr.sets[j].member){
+      t[elem] = std::min(t[elem], pr.sets[j].cost);
     }
   }
 }

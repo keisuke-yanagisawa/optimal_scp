@@ -21,9 +21,9 @@ std::set<int> optimize(const problem& pr, state st){
   for(int c=0; c<pr.sets.size(); c++){
     tmp[c] = pr.sets[c].cost;
   }
-  for(int r=0; r<pr.rows; r++){
-    for(int c=0; c<pr.cols; c++){
-      tmp[c] -= pr.sets[c].member[r] * st.t[r];
+  for(int c=0; c<pr.cols; c++){
+    for(const auto& elem: pr.sets[c].member){
+      tmp[c] -= st.t[elem];
     }
   }
   std::set<int> ZUB_set = st.Z_UB_set;

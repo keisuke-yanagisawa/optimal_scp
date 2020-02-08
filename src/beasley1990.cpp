@@ -16,8 +16,8 @@ double construct_solution(const problem& pr, state& st){
   // check satisfaction by X
   for(int j=0; j<pr.cols; j++){
     if(st.X.find(j) == st.X.end()) continue;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.sets[j].member[i]) num_included[i]++;
+    for(const auto& elem: pr.sets[j].member){
+      num_included[elem]++;
     }
   }
 
@@ -25,10 +25,10 @@ double construct_solution(const problem& pr, state& st){
   for(int i=0; i<pr.rows; i++){
     if(num_included[i]) continue;
     for(int j=0; j<pr.cols; j++){
-      if(pr.sets[j].member[i]){
+      if(pr.sets[j].member.find(i) != pr.sets[j].member.end()){
 	st.X.insert(j);
-	for(int i2=0; i2<pr.rows; i2++){
-	  if(pr.sets[j].member[i2]) num_included[i2]++;
+	for(const auto& elem: pr.sets[j].member){
+	  num_included[elem]++;
 	}
       }
     }
@@ -38,24 +38,23 @@ double construct_solution(const problem& pr, state& st){
   for(int j=pr.cols-1; j>=0; j--){
     if(st.X.find(j) == st.X.end()) continue;
 
-    bool flag = true;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.sets[j].member[i]) flag &= num_included[i]>=2;
+    bool is_removable = true;
+    for(const auto& elem: pr.sets[j].member){
+      is_removable &= num_included[elem] >= 2;
     }
-    if(!flag) continue;
+    if(!is_removable) continue;
+
     st.X.erase(j);
-    for(int i=0; i<pr.rows; i++){
-      if(pr.sets[j].member[i]) num_included[i]--;
+    for(const auto& elem: pr.sets[j].member){
+      num_included[elem]--;
     }
   }
 
   //calculate total cost
   double cost = 0;
-  for(int j=0; j<pr.cols; j++){
-    if(st.X.find(j) == st.X.end()) continue;
-    cost += pr.sets[j].cost;
+  for(const auto& elem: st.X){
+    cost += pr.sets[elem].cost;
   }
-
   return cost;
 
 }
@@ -67,8 +66,8 @@ double llbp(const problem& pr, state& st){
   std::vector<double> C(pr.cols);
   for(int j=0; j<pr.cols; j++){
     C[j] = pr.sets[j].cost;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.sets[j].member[i]) C[j]-=st.t[i];
+    for(const auto& elem: pr.sets[j].member){
+      C[j] -= st.t[elem];
     }
   }
 
@@ -93,10 +92,9 @@ double llbp(const problem& pr, state& st){
 
 std::vector<double> init_t(const problem& pr){
   std::vector<double> t(pr.rows, 1e8);
-  for(int r=0; r<pr.rows; r++){
-    for(int c=0; c<pr.cols; c++){
-      if(pr.sets[c].member[r] && t[r] > pr.sets[c].cost)
-	t[r] = pr.sets[c].cost;
+  for(int c=0; c<pr.cols; c++){
+    for(const auto& r: pr.sets[c].member){
+      t[r] = std::min(t[r], pr.sets[c].cost);
     }
   }
   return t;
@@ -144,8 +142,8 @@ std::pair<std::set<int>, int> remove_cols(const problem& pr, state& st){
     std::vector<int> num_included(pr.rows, 0);
     for(int j=0; j<pr.cols; j++){
       if(actives.find(pr.sets[j].ext_idx) != actives.end()) break;
-      for(int i=0; i<pr.rows; i++){
-	if(pr.sets[j].member[i]) num_included[i]++;
+      for(const auto& elem: pr.sets[j].member){
+	num_included[elem]++;
       }
     }
     //utils::dump(num_included);
@@ -153,7 +151,8 @@ std::pair<std::set<int>, int> remove_cols(const problem& pr, state& st){
       //assert(num_included[i] != 0);
       if(num_included[i] > 1) continue;
       for(int j=0; j<pr.cols; j++){
-	if(pr.sets[j].member[i] && actives.find(pr.sets[j].ext_idx) == actives.end()){
+	if(pr.sets[j].member.find(i) != pr.sets[j].member.end()
+	   && actives.find(pr.sets[j].ext_idx) == actives.end()){
 	  std::cout << j << " " << i << std::endl;
 	  actives.insert(pr.sets[j].ext_idx);
 	  actives_cost += pr.sets[j].cost;
@@ -174,8 +173,8 @@ void update_t(const problem& pr, state& st, double f){
   std::vector<double> G(pr.rows, 1);
   for(int j=0; j<pr.cols; j++){
     if(st.X.find(j) == st.X.end()) continue;
-    for(int i=0; i<pr.rows; i++){
-      if(pr.sets[j].member[i]) G[i]--;
+    for(const auto& elem: pr.sets[j].member){
+      G[elem]--;
     }
   }
 
