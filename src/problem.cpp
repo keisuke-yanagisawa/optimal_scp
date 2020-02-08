@@ -31,21 +31,7 @@ void problem::init(){
     utils::dump(elem.member);
   }
 
-  col_indices = std::vector<int>(cols);
-  std::iota(col_indices.begin(), col_indices.end(), 0);
-  sort(col_indices.begin(), col_indices.end(), 
-       [this](size_t i1, size_t i2){
-	 return sets[i1].cost == sets[i2].cost ? 
-	   std::accumulate(sets[i1].member.begin(), sets[i1].member.end(), 0) 
-	     >= std::accumulate(sets[i2].member.begin(), sets[i2].member.end(), 0) : 
-	   sets[i1].cost < sets[i2].cost;
-       });
-  std::vector<scp::set> new_sets;
-  for(const auto& elem: col_indices){
-    new_sets.push_back(sets[elem]);
-  }
-  sets = new_sets;
-
+  sort(sets.begin(), sets.end());
   //remove_inactive_cols();
 }
 

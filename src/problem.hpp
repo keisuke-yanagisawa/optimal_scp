@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <set>
+#include <algorithm>
 
 #ifndef PROBLEM_HPP_
 #define PROBLEM_HPP_
@@ -17,6 +18,13 @@ namespace scp{
     extern_c_idx ext_idx;
     double cost;
     std::vector<r_idx> member;
+
+    bool operator<(const set &o) const{
+      if(cost != o.cost) return cost < o.cost;
+      int member_counts   = std::accumulate(member.begin(), member.end(), 0);
+      int member_counts_o = std::accumulate(o.member.begin(), o.member.end(), 0);
+      return member_counts >= member_counts_o;
+    }
   };
 }
 
