@@ -1,3 +1,5 @@
+#define BOOST_LOG_DYN_LINK 1
+
 #include <iostream>
 #include <set>
 #include <cmath>
@@ -5,11 +7,16 @@
 #include <algorithm>
 #include <stack>
 
+#include <boost/log/trivial.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+
 #include "utils.hpp"
 #include "problem.hpp"
 #include "state.hpp"
 #include "beasley1990.hpp"
 
+using namespace boost::log;
 
 std::set<int> optimize(const problem& pr, state st){
   if(pr.cols == 0) return st.active_cols;
@@ -74,9 +81,18 @@ std::set<int> optimize(const problem& pr, state st){
 }
 
 int main(void){
+  // logging preparation
+  core::get()->set_filter(
+    trivial::severity >= trivial::info
+  );
+
+  
   problem pr;
   pr.parse(std::cin);
-  if(!pr.solvable()) return 1;
+  if(!pr.solvable()){
+    BOOST_LOG_TRIVIAL(error) << "Given problem is not solvable";
+    return 1;
+  }
 
   state result = primal_dual(pr);
   utils::dump(result.Z_UB_set);
